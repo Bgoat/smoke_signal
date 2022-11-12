@@ -115,8 +115,9 @@ static eCommandResult_T ConsoleCommandFlashRW(const char buffer[])
 	ConsoleSendParamInt32(Rdata_bottom);
 	ConsoleIoSendString(STR_ENDLINE);
 
- 	HAL_StatusTypeDef HAL_FLASH_Unlock();
 
+ 	HAL_FLASH_Unlock();
+ 	//HAL_FLASH_OB_Unlock();
  	// Erase
  	//Instantiate the FLASH_EraseInitTypeDef struct needed for the HAL_FLASHEx_Erase() function
 	FLASH_EraseInitTypeDef FLASH_EraseInitStruct = {0};
@@ -131,12 +132,12 @@ static eCommandResult_T ConsoleCommandFlashRW(const char buffer[])
 	HAL_FLASHEx_Erase(&FLASH_EraseInitStruct,&errorStatus);
 	HAL_Delay(10);
 
- 	uint8_t FData = 0x22;
+ 	uint8_t FData = 0xAA;
  	// FLASH->CR &= (FLASH_CR_PG);
-	HAL_StatusTypeDef HAL_FLASH_Unlock();
+
  	HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,0x08020000, FData);
  	HAL_Delay(10);
- 	HAL_StatusTypeDef HAL_FLASH_Lock();
+ 	HAL_FLASH_Lock();
 
  	RData = *RDAddr;
 	Rdata_bottom = (uint32_t)(RData & 0xFFFFFFFFLL);
