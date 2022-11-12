@@ -1,0 +1,4 @@
+../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.c:79:9:BSP_ACCELERO_Init	32	static
+../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.c:177:6:BSP_ACCELERO_Reset	8	static
+../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.c:188:6:BSP_ACCELERO_Click_ITConfig	8	static
+../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.c:201:6:BSP_ACCELERO_GetXYZ	24	static
