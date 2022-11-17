@@ -1,17 +1,12 @@
 /* USER CODE BEGIN Header */
 /**
+ * William Goethals
+ * Nov 2022 for MES
   ******************************************************************************
   * @file           : main.c
   * @brief          : Main program body
   ******************************************************************************
   * @attention
-  *
-  * Copyright (c) 2022 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -68,6 +63,7 @@ bool button_pressed = false;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
+void cli_check(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -134,30 +130,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (op_mode == mode_cli)
   {
+	cli_check();
 
-  	if(echo) {
-		sprintf((char*)buf, "%c", c);
-  		HAL_UART_Transmit(&huart2, buf, 1, HAL_MAX_DELAY);
-  		echo = false;
-  	}
-
-  	if(input_buf_ready(&uart_buf)) {
-  		// remove the c in sprintf((char*)buf, "\r\n", c);
-  		sprintf((char*)buf, "\r\n", c);
-  		HAL_UART_Transmit(&huart2, buf, 2, HAL_MAX_DELAY);
-			ConsoleProcess();
-			input_buf_reset(&uart_buf);
-			// unsure why console.c doesn't clear, so let's clear it here
-			for(uint16_t i=0; i<256; i++) { // should be CONSOLE_COMMAND_MAX_LENGTH, but it's in consoleCommands.h
-				mReceiveBuffer[i] = 0;
-			}
-			mReceivedSoFar = 0;
-		}
-  	if(button_pressed != 0)
-  	{
-  		op_mode = mode_local;
-  	}
-    /* USER CODE END WHILE */
+	if(button_pressed != 0)
+	{
+		op_mode = mode_local;
+	}
+	/* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
@@ -255,7 +234,27 @@ void PeriphCommonClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void cli_check(void)
+{
+ 	if(echo) {
+		sprintf((char*)buf, "%c", c);
+  		HAL_UART_Transmit(&huart2, buf, 1, HAL_MAX_DELAY);
+  		echo = false;
+  	}
 
+  	if(input_buf_ready(&uart_buf)) {
+  		// remove the c in sprintf((char*)buf, "\r\n", c);
+  		sprintf((char*)buf, "\r\n", c);
+  		HAL_UART_Transmit(&huart2, buf, 2, HAL_MAX_DELAY);
+			ConsoleProcess();
+			input_buf_reset(&uart_buf);
+			// unsure why console.c doesn't clear, so let's clear it here
+			for(uint16_t i=0; i<256; i++) { // should be CONSOLE_COMMAND_MAX_LENGTH, but it's in consoleCommands.h
+				mReceiveBuffer[i] = 0;
+			}
+			mReceivedSoFar = 0;
+		}
+}
 /* USER CODE END 4 */
 
 /**
