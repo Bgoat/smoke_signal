@@ -1,5 +1,6 @@
 #MicroXplorer Configuration settings - do not modify
 File.Version=6
+GPIO.groupedBy=Group By Peripherals
 I2S2.AudioFreq=I2S_AUDIOFREQ_96K
 I2S2.ErrorAudioFreq=0.15 %
 I2S2.FullDuplexMode=I2S_FULLDUPLEXMODE_ENABLE
@@ -76,6 +77,7 @@ MxCube.Version=6.6.1
 MxDb.Version=DB.6.0.60
 NVIC.BusFault_IRQn=true\:0\:0\:false\:false\:true\:true\:false\:false
 NVIC.DebugMonitor_IRQn=true\:0\:0\:false\:false\:true\:true\:false\:false
+NVIC.EXTI0_IRQn=true\:0\:0\:false\:false\:true\:true\:true\:true
 NVIC.ForceEnableDMAVector=true
 NVIC.HardFault_IRQn=true\:0\:0\:false\:false\:true\:true\:false\:false
 NVIC.MemoryManagement_IRQn=true\:0\:0\:false\:false\:true\:true\:false\:false
@@ -87,7 +89,7 @@ NVIC.SysTick_IRQn=true\:0\:0\:true\:false\:true\:true\:true\:false
 NVIC.USART2_IRQn=true\:0\:0\:false\:false\:true\:true\:true\:true
 NVIC.UsageFault_IRQn=true\:0\:0\:false\:false\:true\:true\:false\:false
 PA0-WKUP.GPIOParameters=GPIO_ModeDefaultEXTI
-PA0-WKUP.GPIO_ModeDefaultEXTI=GPIO_MODE_EVT_RISING
+PA0-WKUP.GPIO_ModeDefaultEXTI=GPIO_MODE_IT_RISING
 PA0-WKUP.Locked=true
 PA0-WKUP.Signal=GPXTI0
 PA10.GPIOParameters=GPIO_Label

@@ -18,13 +18,13 @@
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
-#include "../../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "input_buf.h"
 #include "console.h"
 #include <stdbool.h>
+#include "../../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,14 +57,15 @@ extern char mReceiveBuffer[256]; // should be CONSOLE_COMMAND_MAX_LENGTH, but it
 extern uint32_t mReceivedSoFar;
 enum operation_mode op_mode = mode_cli;
 bool button_pressed = false;
-
+uint32_t previousMs = 0;
+uint32_t currentMs = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
-void cli_check(void);
 /* USER CODE BEGIN PFP */
+void cli_check(void);
 
 /* USER CODE END PFP */
 
@@ -136,7 +137,7 @@ int main(void)
 	{
 		op_mode = mode_local;
 	}
-	/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
@@ -254,6 +255,22 @@ void cli_check(void)
 			}
 			mReceivedSoFar = 0;
 		}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	currentMs = HAL_GetTick();
+	if((GPIO_Pin == GPIO_PIN_0) && (currentMs - previousMs > 10) ){
+		if(HAL_GPIO_ReadPin(GPIOA, GPIO_Pin)){
+			// Rising
+			HAL_GPIO_WritePin(GPIOD, LD6_Pin, GPIO_PIN_SET);
+			button_pressed = true; // exit cli mode
+		}
+		else{
+			// Falling
+			HAL_GPIO_WritePin(GPIOD, LD6_Pin, GPIO_PIN_RESET);
+		}
+	}
+	previousMs = currentMs;
 }
 /* USER CODE END 4 */
 
