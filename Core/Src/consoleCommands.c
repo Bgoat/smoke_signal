@@ -26,6 +26,7 @@ static eCommandResult_T ConsoleCommandHelp(const char buffer[]);
 static eCommandResult_T ConsoleCommandAccel(const char buffer[]);
 static eCommandResult_T ConsoleCommandGyro(const char buffer[]);
 static eCommandResult_T ConsoleCommandFlashRW(const char buffer[]);
+static eCommandResult_T ConsoleCommandReadVector(const char buffer[]);
 static eCommandResult_T ConsoleCommandSonar(const char buffer[]);
 static eCommandResult_T ConsoleCommandParamExampleInt16(const char buffer[]);
 static eCommandResult_T ConsoleCommandParamExampleHexUint16(const char buffer[]);
@@ -38,6 +39,7 @@ static const sConsoleCommandTable_T mConsoleCommandTable[] =
     {"accel", &ConsoleCommandAccel, HELP("Testing the accel dims")},
     {"gyro", &ConsoleCommandGyro, HELP("Testing the gyro movement")},
     {"flash", &ConsoleCommandFlashRW, HELP("Testing the Flash read and write")},
+    {"gas", &ConsoleCommandReadVector, HELP("reading the gas vector")},
     {"sonar", &ConsoleCommandSonar, HELP("Getting Sonar Distance")},
     {"ver", &ConsoleCommandVer, HELP("Get the version string")},
     {"int", &ConsoleCommandParamExampleInt16, HELP("How to get a signed int16 from params list: int -321")},
@@ -157,7 +159,23 @@ static eCommandResult_T ConsoleCommandFlashRW(const char buffer[])
 
 	return result;
 }
+static eCommandResult_T ConsoleCommandReadVector(const char buffer[])
+{
+	#define FLASH_FREE_LOCATION 0x08020000
+	//read the line vector placed at location
+	uint64_t *RDAddr = (uint64_t *) FLASH_FREE_LOCATION;
+	uint64_t RData = *RDAddr;
+	uint32_t Rdata_bottom = (uint32_t)(RData & 0xFFFFFFFFLL);
+	uint32_t Rdata_top = (uint32_t)((RData & 0xFFFFFFFF00000000LL) >> 32);
+	ConsoleIoSendString("Data is ");
+	ConsoleSendParamInt32(Rdata_top);
+	ConsoleSendParamInt32(Rdata_bottom);
+	ConsoleIoSendString(STR_ENDLINE);
 
+ 	eCommandResult_T result = COMMAND_SUCCESS;
+
+	return result;
+}
 static eCommandResult_T ConsoleCommandSonar(const char buffer[])
 {
 	uint8_t Distance = 200;

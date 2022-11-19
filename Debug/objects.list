@@ -1,3 +1,4 @@
+"./Core/Src/adc.o"
 "./Core/Src/console.o"
 "./Core/Src/consoleCommands.o"
 "./Core/Src/consoleIo.o"
@@ -47,6 +48,8 @@
 "./Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_audio.o"
 "./Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_gyroscope.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o"
+"./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.o"
+"./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.o"
@@ -67,3 +70,4 @@
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o"
+"./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_adc.o"

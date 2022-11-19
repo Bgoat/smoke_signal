@@ -13,6 +13,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "i2c.h"
 #include "i2s.h"
 #include "spi.h"
@@ -47,7 +48,11 @@
 /* USER CODE BEGIN PV */
 // Flash in STM32F411 is from 0x0800 0000 to 0x0807 FFFF
 #define FLASH_START 0x08009000
-enum operation_mode {mode_cli = 0, mode_local = 1, mode_moving = 2, mode_sensing = 3};
+enum heading{north =0, east=1, south = 2, west =3};
+enum heading current_heading = north;
+bool block = false;
+bool demo_mode = true;
+enum operation_mode {mode_cli = 0, mode_local = 1, mode_moving = 2, mode_sensing = 3, mode_measure = 4};
 uint8_t uart_byte_buf[1];
 input_buf uart_buf;
 uint32_t adcValue;
@@ -67,7 +72,16 @@ uint8_t Is_First_Captured = 0;  // is the first value captured ?
 uint8_t Distance   = 0;
 uint8_t DistanceR  = 0;
 uint8_t DistanceL  = 0;
+const uint16_t turn_time = 800;
+const uint16_t forward_time = 500;
+const uint32_t speed = 30000;
+const uint32_t speed_R = speed*.82;
 uint16_t gas_values[10][10];
+uint8_t x_loc = 0;
+uint8_t y_loc = 0;
+
+uint16_t rawADC;
+
 
 #define TRIG_PIN GPIO_PIN_8
 #define TRIG_PORT GPIOE
@@ -83,6 +97,16 @@ void HCSR04_Read(void);
 void HCSR04_ReadRight(void);
 void HCSR04_ReadLeft(void);
 
+void straight(uint16_t ms_time);
+void right(uint16_t ms_time);
+void left(uint16_t ms_time);
+void back(uint16_t ms_time);
+void wall_follow(void);
+uint16_t read_gas(void);
+void demo_drive(void);
+void check_sonar(void);
+void linear_reg(int n);
+void flash_write(uint8_t data);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -136,12 +160,20 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   ConsoleInit();
   input_buf_reset(&uart_buf);
   HAL_UART_Receive_IT(&huart2, uart_byte_buf, 1);
+  HAL_TIM_Base_Start(&htim1);
   HAL_TIM_Base_Start(&htim2);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
   HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_2);
+  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_3);
   // For running motors comment for now
   //HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
@@ -171,16 +203,27 @@ int main(void)
 		  break;
 	  case mode_local:
 		  //find where I am if first time
-		  // check the surroundings
+		  // eCompass to set direction, for now, origin is North relative
+		  current_heading = north;
+		  op_mode = mode_moving;
 		  break;
 	  case mode_moving:
-		  // if clear right, turn right
-		  // else if clear straight then go straight
-		  // else if clear left go left
-		  // else back up one length, set block straight and move again
+		  if(demo_mode)
+		  {
+			  demo_drive();
+		  }
+		  else
+		  {
+			  check_sonar();
+			  wall_follow();
+		  }
 		  break;
 	  case mode_sensing:
-		  // read adc of the sensor
+		  gas_values[x_loc][y_loc] = read_gas();
+		  break;
+	  case mode_measure:
+		  linear_reg(2);
+		  cli_check();
 		  break;
 
 
@@ -431,6 +474,299 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		}
 	}
 	previousMs = currentMs;
+}
+
+void straight(uint16_t ms_time)
+{
+	  TIM3->CCR1 = speed;
+	  TIM3->CCR3 = 0;
+	  TIM3->CCR2 = speed_R;
+	  TIM3->CCR4 = 0;
+	  HAL_Delay(ms_time);
+	  TIM3->CCR1 = 0;
+	  TIM3->CCR3 = 0;
+	  TIM3->CCR2 = 0;
+	  TIM3->CCR4 = 0;
+	  HAL_Delay(1000);
+}
+void left(uint16_t ms_time)
+{
+	  TIM3->CCR1 = 0;
+	  TIM3->CCR3 = speed;
+	  TIM3->CCR2 = speed_R;
+	  TIM3->CCR4 = 0;
+	  HAL_Delay(ms_time);
+	  TIM3->CCR1 = 0;
+	  TIM3->CCR3 = 0;
+	  TIM3->CCR2 = 0;
+	  TIM3->CCR4 = 0;
+	  HAL_Delay(1000);
+}
+void right(uint16_t ms_time)
+{
+	  TIM3->CCR1 = speed;
+	  TIM3->CCR3 = 0;
+	  TIM3->CCR2 = 0;
+	  TIM3->CCR4 = speed_R;
+	  HAL_Delay(ms_time);
+	  TIM3->CCR1 = 0;
+	  TIM3->CCR3 = 0;
+	  TIM3->CCR2 = 0;
+	  TIM3->CCR4 = 0;
+	  HAL_Delay(1000);
+}
+void back(uint16_t ms_time)
+{
+	  TIM3->CCR1 = 0;
+	  TIM3->CCR3 = speed;
+	  TIM3->CCR2 = 0;
+	  TIM3->CCR4 = speed_R;
+	  HAL_Delay(ms_time);
+	  TIM3->CCR1 = 0;
+	  TIM3->CCR3 = 0;
+	  TIM3->CCR2 = 0;
+	  TIM3->CCR4 = 0;
+	  HAL_Delay(1000);
+}
+void heading_left(void)
+{
+	if(current_heading == 0)
+	{
+		current_heading = 3;
+	}
+	else
+	{
+		current_heading--;
+	}
+}
+void heading_right(void)
+{
+	if(current_heading == 3)
+	{
+		current_heading = 0;
+	}
+	else
+	{
+		current_heading++;
+	}
+}
+
+void wall_follow(void)
+{
+
+	  if(DistanceR > 100 && !block)
+	  {
+		  // if an open to the right go there
+		  right(turn_time);
+		  heading_right();
+	  }
+	  else if(Distance > 30)
+	  {
+		  //nothing in front
+		  straight(forward_time);
+		  block = 0;
+		  switch(current_heading)
+		  {
+			  case north:
+				  x_loc++;
+				  break;
+			  case east:
+				  y_loc--;
+				  break;
+			  case south:
+				  x_loc--;
+				  break;
+			  case west:
+				  y_loc++;
+				  break;
+		  }
+		  op_mode = mode_sensing;
+
+	  }
+	  else if(DistanceL > 50)
+	  {
+		  //if blocked go left
+		  left(turn_time);
+		  block = 0;
+		  heading_left();
+	  }
+	  else
+	  {
+		  // dead end back up and don't go straight
+		  back(forward_time);
+		  block = 1;
+		  // update grid location
+		  switch(current_heading)
+		  {
+			  case north:
+				  x_loc--;
+				  break;
+			  case east:
+				  y_loc++;
+				  break;
+			  case south:
+				  x_loc++;
+				  break;
+			  case west:
+				  y_loc--;
+				  break;
+		  }
+	  }
+
+}
+void check_sonar(void)
+{
+	  HCSR04_Read();
+	  HAL_Delay(200);
+	  HCSR04_ReadRight();
+	  HAL_Delay(200);
+	  HCSR04_ReadLeft();
+	  HAL_Delay(400);
+}
+
+void demo_drive(void)
+{
+	uint8_t movement_units= 5;
+	  for(int i = movement_units; i > 0; i--)
+		  {
+			  //nothing in front
+			  straight(forward_time);
+			  block = 0;
+			  switch(current_heading)
+			  {
+				  case north:
+					  x_loc++;
+					  break;
+				  case east:
+					  y_loc--;
+					  break;
+				  case south:
+					  x_loc--;
+					  break;
+				  case west:
+					  y_loc++;
+					  break;
+			  }
+			  //measure ADC
+			  HAL_Delay(1000);
+			  gas_values[x_loc][y_loc] = read_gas();
+		  }
+	  left(turn_time);
+	  heading_left();
+	  straight(forward_time);
+	  left(turn_time);
+	  heading_left();
+	  gas_values[x_loc][y_loc] = read_gas();
+	  for(int i = movement_units; i > 0; i--)
+		  {
+			  //nothing in front
+			  straight(forward_time);
+			  block = 0;
+			  switch(current_heading)
+			  {
+				  case north:
+					  x_loc++;
+					  break;
+				  case east:
+					  y_loc--;
+					  break;
+				  case south:
+					  x_loc--;
+					  break;
+				  case west:
+					  y_loc++;
+					  break;
+			  }
+			  //measure ADC
+			  HAL_Delay(1000);
+			  gas_values[x_loc][y_loc] = read_gas();
+		  }
+	linear_reg(2);
+
+}
+
+void findHighest(int* x, int* y)
+{
+	int n = 10;
+	int m = 10;
+
+
+     for (int i = 0; i < n; i++)
+     {
+         int max = gas_values[i][0];
+         for (int j = 1; j < m; j++)
+         {
+             if (gas_values[i][j] > max)
+             {
+                max = gas_values[i][j];
+                *x = i;
+                *y = j;
+             }
+         }
+     }
+     //null the max so we can get the next value
+     gas_values[*x][*y] = 0;
+
+}
+
+void linear_reg(int n)
+{
+	//variables
+   int i;
+   int x,y;
+   float m,c,d;
+   float sumx=0,sumxsq=0,sumy=0,sumxy=0;
+
+	//find max points
+
+
+	// calculate m and c
+	for(i=0;i<n;i++){
+		findHighest(&y,&x);
+	   sumx=sumx+x;
+	   sumxsq=sumxsq+(x*x);
+	   sumy=sumy+y;
+	   sumxy=sumxy+(x*y);
+	}
+
+	d=n*sumxsq-sumx*sumx;
+	m=(n*sumxy-sumx*sumy)/d;
+	c=(sumy*sumxsq-sumx*sumxy)/d;
+	flash_write((uint8_t) m);
+}
+
+void flash_write(uint8_t data)
+{
+
+	HAL_FLASH_Unlock();
+	//HAL_FLASH_OB_Unlock();
+	// Erase
+	//Instantiate the FLASH_EraseInitTypeDef struct needed for the HAL_FLASHEx_Erase() function
+	FLASH_EraseInitTypeDef FLASH_EraseInitStruct = {0};
+
+	FLASH_EraseInitStruct.TypeErase = FLASH_TYPEERASE_SECTORS;  //Erase type set to sectors
+	FLASH_EraseInitStruct.Sector = 5;            				//sector 0x0800 C000
+	FLASH_EraseInitStruct.NbSectors = 1;                        //The number of sectors
+	FLASH_EraseInitStruct.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+
+	uint32_t  errorStatus = 0;
+
+	HAL_FLASHEx_Erase(&FLASH_EraseInitStruct,&errorStatus);
+	HAL_Delay(10);
+	// FLASH->CR &= (FLASH_CR_PG);
+
+	HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,0x08020000, data);
+
+	HAL_Delay(10);
+	HAL_FLASH_Lock();
+}
+uint16_t read_gas(void)
+{
+	uint16_t rawADC;
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	rawADC = HAL_ADC_GetValue(&hadc1);
+	return rawADC;
 }
 
 /* USER CODE END 4 */
