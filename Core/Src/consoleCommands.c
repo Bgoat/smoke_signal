@@ -13,8 +13,12 @@
 #include "version.h"
 #include "../../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.h"
 #include "../../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_gyroscope.h"
+#include "tim.h"
+#include "main.h"
+#include "gpio.h"
 
 #define IGNORE_UNUSED_VARIABLE(x)     if ( &x == &x ) {}
+
 
 static eCommandResult_T ConsoleCommandComment(const char buffer[]);
 static eCommandResult_T ConsoleCommandVer(const char buffer[]);
@@ -22,8 +26,10 @@ static eCommandResult_T ConsoleCommandHelp(const char buffer[]);
 static eCommandResult_T ConsoleCommandAccel(const char buffer[]);
 static eCommandResult_T ConsoleCommandGyro(const char buffer[]);
 static eCommandResult_T ConsoleCommandFlashRW(const char buffer[]);
+static eCommandResult_T ConsoleCommandSonar(const char buffer[]);
 static eCommandResult_T ConsoleCommandParamExampleInt16(const char buffer[]);
 static eCommandResult_T ConsoleCommandParamExampleHexUint16(const char buffer[]);
+
 
 static const sConsoleCommandTable_T mConsoleCommandTable[] =
 {
@@ -32,6 +38,7 @@ static const sConsoleCommandTable_T mConsoleCommandTable[] =
     {"accel", &ConsoleCommandAccel, HELP("Testing the accel dims")},
     {"gyro", &ConsoleCommandGyro, HELP("Testing the gyro movement")},
     {"flash", &ConsoleCommandFlashRW, HELP("Testing the Flash read and write")},
+    {"sonar", &ConsoleCommandSonar, HELP("Getting Sonar Distance")},
     {"ver", &ConsoleCommandVer, HELP("Get the version string")},
     {"int", &ConsoleCommandParamExampleInt16, HELP("How to get a signed int16 from params list: int -321")},
     {"u16h", &ConsoleCommandParamExampleHexUint16, HELP("How to get a hex u16 from the params list: u16h aB12")},
@@ -150,6 +157,28 @@ static eCommandResult_T ConsoleCommandFlashRW(const char buffer[])
 
 	return result;
 }
+
+static eCommandResult_T ConsoleCommandSonar(const char buffer[])
+{
+	uint8_t Distance = 200;
+	ConsoleIoSendString("Distance is ");
+
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8, GPIO_PIN_SET);  // pull the TRIG pin HIGH
+	delay_us(10);  // wait for 10 us
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8, GPIO_PIN_RESET);  // pull the TRIG pin low
+
+	__HAL_TIM_ENABLE_IT(&htim1, TIM_IT_CC1);
+	HAL_Delay(100);
+	ConsoleSendParamInt16(Distance);
+	ConsoleIoSendString(STR_ENDLINE);
+
+ 	eCommandResult_T result = COMMAND_SUCCESS;
+
+	return result;
+}
+
+
+
 static eCommandResult_T ConsoleCommandParamExampleInt16(const char buffer[])
 {
 	int16_t parameterInt;

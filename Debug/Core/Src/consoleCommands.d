@@ -31,6 +31,8 @@ Core/Src/consoleCommands.o: ../Core/Src/consoleCommands.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
  ../Core/Inc/input_buf.h ../Core/Inc/version.h \
  ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/stm32f411e_discovery_accelerometer.h \
@@ -43,7 +45,9 @@ Core/Src/consoleCommands.o: ../Core/Src/consoleCommands.c \
  ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/l3gd20/l3gd20.h \
  ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/l3gd20/../Common/gyro.h \
  ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/i3g4250d/i3g4250d.h \
- ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/i3g4250d/../Common/gyro.h
+ ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/i3g4250d/../Common/gyro.h \
+ ../Core/Inc/tim.h ../Core/Inc/main.h ../Core/Inc/main.h \
+ ../Core/Inc/gpio.h
 ../Core/Inc/consoleCommands.h:
 ../Core/Inc/console.h:
 ../Core/Inc/console.h:
@@ -78,6 +82,8 @@ Core/Src/consoleCommands.o: ../Core/Src/consoleCommands.c \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/input_buf.h:
 ../Core/Inc/version.h:
@@ -92,3 +98,7 @@ Core/Src/consoleCommands.o: ../Core/Src/consoleCommands.c \
 ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/l3gd20/../Common/gyro.h:
 ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/i3g4250d/i3g4250d.h:
 ../Core/Src/../../Drivers/BSP/STM32F411E-Discovery/../Components/i3g4250d/../Common/gyro.h:
+../Core/Inc/tim.h:
+../Core/Inc/main.h:
+../Core/Inc/main.h:
+../Core/Inc/gpio.h:
