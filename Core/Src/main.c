@@ -336,6 +336,8 @@ void cli_check(void)
 		}
 }
 /* USER CODE BEGIN 4 */
+// Sonar Calls for each direction
+// FUTURE simplify and use different Trigger pins for each
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)  // if the interrupt source is channel1
@@ -469,6 +471,7 @@ void HCSR04_ReadLeft (void)
 
 }
 
+// Timer for ultrasonic echo
 void delay_us(uint16_t us)
 {
 	__HAL_TIM_SET_COUNTER(&htim2, 0);
@@ -575,6 +578,10 @@ void wall_follow(void)
 		  // if an open to the right go there
 		  right(turn_time);
 		  heading_right();
+		  straight(forward_time); // unit must go forward or it will circle
+		  block = 0;
+		  update_heading();
+		  op_mode = mode_sensing;
 	  }
 	  else if(Distance > 30)
 	  {
@@ -585,7 +592,7 @@ void wall_follow(void)
 		  op_mode = mode_sensing;
 
 	  }
-	  else if(DistanceL > 50)
+	  else if(DistanceL > 60)
 	  {
 		  //if blocked go left
 		  left(turn_time);
@@ -638,6 +645,8 @@ void update_heading_back(void)
 			  break;
 	  }
 }
+
+// Check if robot is back to the origin point
 void origin_check(void)
 {
 	if(x_loc ==0 && y_loc == 0)
