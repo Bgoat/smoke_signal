@@ -48,23 +48,32 @@
 /* USER CODE BEGIN PV */
 // Flash in STM32F411 is from 0x0800 0000 to 0x0807 FFFF
 #define FLASH_START 0x08009000
+
+//State for operation and headings
+enum operation_mode {mode_cli = 0, mode_local = 1, mode_moving = 2, mode_sensing = 3, mode_measure = 4};
+enum operation_mode op_mode = mode_cli;
+bool button_pressed = false;
 enum heading{north =0, east=1, south = 2, west =3};
 enum heading current_heading = north;
+
+// Movement vars
 bool block = false;
-bool demo_mode = true;
-enum operation_mode {mode_cli = 0, mode_local = 1, mode_moving = 2, mode_sensing = 3, mode_measure = 4};
+
+
+// CLI vars
 uint8_t uart_byte_buf[1];
 input_buf uart_buf;
-uint32_t adcValue;
 char c;
 bool echo;
 char buf[20];
 extern char mReceiveBuffer[256]; // should be CONSOLE_COMMAND_MAX_LENGTH, but it's in consoleCommands.h
 extern uint32_t mReceivedSoFar;
-enum operation_mode op_mode = mode_cli;
-bool button_pressed = false;
+
+// Button Vars
 uint32_t previousMs = 0;
 uint32_t currentMs = 0;
+
+// timer vars for Sonar
 uint32_t IC_Val1 = 0;
 uint32_t IC_Val2 = 0;
 uint32_t Difference = 0;
@@ -72,16 +81,24 @@ uint8_t Is_First_Captured = 0;  // is the first value captured ?
 uint8_t Distance   = 0;
 uint8_t DistanceR  = 0;
 uint8_t DistanceL  = 0;
+uint32_t wall_space = 30; // Start with the wall ~ 1 foot away and move it
+
+// Motor Vars
 const uint16_t turn_time = 800;
 const uint16_t forward_time = 500;
 const uint32_t speed = 30000;
 const uint32_t speed_R = speed*.82;
-uint16_t gas_values[10][10];
+
+// Gas and location vars
+uint16_t gas_values[30][30]; // setting larger than testing space - to change to dynamically allocated Array in FUTURE
 uint8_t x_loc = 0;
 uint8_t y_loc = 0;
 
 uint16_t rawADC;
 
+// Settings for just doing a perimeter or small demo movement
+bool perimeter_only = true;
+bool demo_mode = false;
 
 #define TRIG_PIN GPIO_PIN_8
 #define TRIG_PORT GPIOE
@@ -106,7 +123,11 @@ uint16_t read_gas(void);
 void demo_drive(void);
 void check_sonar(void);
 void linear_reg(int n);
-void flash_write(uint8_t data);
+void flash_write(uint64_t data);
+void origin_check(void);
+void update_heading(void);
+void update_heading_back(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -181,25 +202,18 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (op_mode == mode_cli)
-  {
-	cli_check();
 
-	if(button_pressed != 0)
-	{
-		op_mode = mode_local;
-	}
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  // infinite loop
+  // infinite loop state machine
   while(1)
   {
 	  switch(op_mode)
 	  {
 	  case mode_cli:
-		  Error_Handler();
+		  cli_check();
+			if(button_pressed != 0)
+			{
+				op_mode = mode_local;
+			}
 		  break;
 	  case mode_local:
 		  //find where I am if first time
@@ -219,7 +233,9 @@ int main(void)
 		  }
 		  break;
 	  case mode_sensing:
+		  origin_check();
 		  gas_values[x_loc][y_loc] = read_gas();
+		  op_mode = mode_moving;
 		  break;
 	  case mode_measure:
 		  linear_reg(2);
@@ -554,7 +570,7 @@ void heading_right(void)
 void wall_follow(void)
 {
 
-	  if(DistanceR > 100 && !block)
+	  if(DistanceR > wall_space && !block)
 	  {
 		  // if an open to the right go there
 		  right(turn_time);
@@ -565,21 +581,7 @@ void wall_follow(void)
 		  //nothing in front
 		  straight(forward_time);
 		  block = 0;
-		  switch(current_heading)
-		  {
-			  case north:
-				  x_loc++;
-				  break;
-			  case east:
-				  y_loc--;
-				  break;
-			  case south:
-				  x_loc--;
-				  break;
-			  case west:
-				  y_loc++;
-				  break;
-		  }
+		  update_heading();
 		  op_mode = mode_sensing;
 
 	  }
@@ -596,24 +598,82 @@ void wall_follow(void)
 		  back(forward_time);
 		  block = 1;
 		  // update grid location
-		  switch(current_heading)
-		  {
-			  case north:
-				  x_loc--;
-				  break;
-			  case east:
-				  y_loc++;
-				  break;
-			  case south:
-				  x_loc++;
-				  break;
-			  case west:
-				  y_loc--;
-				  break;
-		  }
+		  update_heading_back();
 	  }
 
 }
+void update_heading(void)
+{
+	switch(current_heading)
+	{
+	  case north:
+		  x_loc++;
+		  break;
+	  case east:
+		  y_loc--;
+		  break;
+	  case south:
+		  x_loc--;
+		  break;
+	  case west:
+		  y_loc++;
+		  break;
+	}
+}
+void update_heading_back(void)
+{
+	  switch(current_heading)
+	  {
+		  case north:
+			  x_loc--;
+			  break;
+		  case east:
+			  y_loc++;
+			  break;
+		  case south:
+			  x_loc++;
+			  break;
+		  case west:
+			  y_loc--;
+			  break;
+	  }
+}
+void origin_check(void)
+{
+	if(x_loc ==0 && y_loc == 0)
+	{
+		if(perimeter_only)
+		{
+			// Back at the origin then end the session
+			op_mode = mode_measure;
+		}
+		else
+		{
+			// Move in and go around again
+			// Must go in and forward else endless cycle
+			// FUTURE to build this for irregular rooms
+			left(turn_time);
+			heading_left();
+			straight(forward_time);
+			update_heading();
+			right(turn_time);
+			heading_right();
+			straight(forward_time);
+			update_heading();
+			// Set the new distance from the wall
+			wall_space = wall_space + 30;
+			if(gas_values[x_loc][y_loc != 0])
+			{
+				// if value has been taken then the grid is closed
+				// this only works in rectangular rooms
+				// FUTURE change to search grid for zeros
+				op_mode = mode_measure;
+			}
+
+		}
+	}
+}
+
 void check_sonar(void)
 {
 	  HCSR04_Read();
@@ -632,21 +692,7 @@ void demo_drive(void)
 			  //nothing in front
 			  straight(forward_time);
 			  block = 0;
-			  switch(current_heading)
-			  {
-				  case north:
-					  x_loc++;
-					  break;
-				  case east:
-					  y_loc--;
-					  break;
-				  case south:
-					  x_loc--;
-					  break;
-				  case west:
-					  y_loc++;
-					  break;
-			  }
+			  update_heading();
 			  //measure ADC
 			  HAL_Delay(1000);
 			  gas_values[x_loc][y_loc] = read_gas();
@@ -662,21 +708,7 @@ void demo_drive(void)
 			  //nothing in front
 			  straight(forward_time);
 			  block = 0;
-			  switch(current_heading)
-			  {
-				  case north:
-					  x_loc++;
-					  break;
-				  case east:
-					  y_loc--;
-					  break;
-				  case south:
-					  x_loc--;
-					  break;
-				  case west:
-					  y_loc++;
-					  break;
-			  }
+			  update_heading();
 			  //measure ADC
 			  HAL_Delay(1000);
 			  gas_values[x_loc][y_loc] = read_gas();
@@ -732,10 +764,13 @@ void linear_reg(int n)
 	d=n*sumxsq-sumx*sumx;
 	m=(n*sumxy-sumx*sumy)/d;
 	c=(sumy*sumxsq-sumx*sumxy)/d;
-	flash_write((uint8_t) m);
+	uint32_t m_int = (uint32_t)m;
+	uint32_t c_int = (uint32_t)c;
+	uint64_t flash_data = ((uint32_t)m_int << 32) | c_int;
+	flash_write(flash_data);
 }
 
-void flash_write(uint8_t data)
+void flash_write(uint64_t data)
 {
 
 	HAL_FLASH_Unlock();
@@ -755,11 +790,12 @@ void flash_write(uint8_t data)
 	HAL_Delay(10);
 	// FLASH->CR &= (FLASH_CR_PG);
 
-	HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,0x08020000, data);
+	HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD,0x08020000, data);
 
 	HAL_Delay(10);
 	HAL_FLASH_Lock();
 }
+
 uint16_t read_gas(void)
 {
 	uint16_t rawADC;
