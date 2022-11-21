@@ -91,8 +91,10 @@ const uint32_t speed_R = speed*.82;
 
 // Gas and location vars
 uint16_t gas_values[30][30]; // setting larger than testing space - to change to dynamically allocated Array in FUTURE
-uint8_t x_loc = 0;
-uint8_t y_loc = 0;
+uint32_t x_loc = 0;
+uint32_t y_loc = 0;
+uint32_t x_ori = 0;
+uint32_t y_ori = 0;
 
 uint16_t rawADC;
 
@@ -649,7 +651,7 @@ void update_heading_back(void)
 // Check if robot is back to the origin point
 void origin_check(void)
 {
-	if(x_loc ==0 && y_loc == 0)
+	if(x_loc == x_ori && y_loc == y_ori)
 	{
 		if(perimeter_only)
 		{
@@ -669,6 +671,9 @@ void origin_check(void)
 			heading_right();
 			straight(forward_time);
 			update_heading();
+			// update the loop starting point
+			x_ori = x_loc;
+			y_ori = y_loc;
 			// Set the new distance from the wall
 			wall_space = wall_space + 30;
 			if(gas_values[x_loc][y_loc != 0])
@@ -773,9 +778,9 @@ void linear_reg(int n)
 	d=n*sumxsq-sumx*sumx;
 	m=(n*sumxy-sumx*sumy)/d;
 	c=(sumy*sumxsq-sumx*sumxy)/d;
-	uint32_t m_int = (uint32_t)m;
-	uint32_t c_int = (uint32_t)c;
-	uint64_t flash_data = ((uint32_t)m_int << 32) | c_int;
+	uint64_t m_int = (uint64_t)m;
+	uint64_t c_int = (uint64_t)c;
+	uint64_t flash_data = ((uint64_t)m_int << 32) | c_int;
 	flash_write(flash_data);
 }
 
