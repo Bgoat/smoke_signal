@@ -102,6 +102,8 @@ uint16_t rawADC;
 bool perimeter_only = true;
 bool demo_mode = false;
 
+#define TRIG_PINL GPIO_PIN_7
+#define TRIG_PINR GPIO_PIN_10
 #define TRIG_PIN GPIO_PIN_8
 #define TRIG_PORT GPIOE
 /* USER CODE END PV */
@@ -204,48 +206,49 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-  // infinite loop state machine
-  while(1)
+  while (1)
   {
 	  switch(op_mode)
-	  {
-	  case mode_cli:
-		  cli_check();
-			if(button_pressed != 0)
-			{
-				op_mode = mode_local;
-			}
-		  break;
-	  case mode_local:
-		  //find where I am if first time
-		  // eCompass to set direction, for now, origin is North relative
-		  current_heading = north;
-		  op_mode = mode_moving;
-		  break;
-	  case mode_moving:
-		  if(demo_mode)
-		  {
-			  demo_drive();
-		  }
-		  else
-		  {
-			  check_sonar();
-			  wall_follow();
-		  }
-		  break;
-	  case mode_sensing:
-		  origin_check();
-		  gas_values[x_loc][y_loc] = read_gas();
-		  op_mode = mode_moving;
-		  break;
-	  case mode_measure:
-		  linear_reg(2);
-		  cli_check();
-		  break;
+	  	  {
+	  	  case mode_cli:
+	  		  cli_check();
+	  			if(button_pressed != 0)
+	  			{
+	  				op_mode = mode_local;
+	  			}
+	  		  break;
+	  	  case mode_local:
+	  		  //find where I am if first time
+	  		  // eCompass to set direction, for now, origin is North relative
+	  		  current_heading = north;
+	  		  op_mode = mode_moving;
+	  		  break;
+	  	  case mode_moving:
+	  		  if(demo_mode)
+	  		  {
+	  			  demo_drive();
+	  		  }
+	  		  else
+	  		  {
+	  			  check_sonar();
+	  			  wall_follow();
+	  		  }
+	  		  break;
+	  	  case mode_sensing:
+	  		  origin_check();
+	  		  gas_values[x_loc][y_loc] = read_gas();
+	  		  op_mode = mode_moving;
+	  		  break;
+	  	  case mode_measure:
+	  		  linear_reg(2);
+	  		  cli_check();
+	  		  break;
 
 
-	  }
+	  	  }
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
